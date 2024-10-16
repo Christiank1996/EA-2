@@ -1,0 +1,114 @@
+<!DOCTYPE html5>
+<html>
+    <body>
+        <div style="background-color: grey; width: 800px">
+            <label for="weightSlider">Stärke: <span id="weightSliderValue">0.5</span></label>
+            <input type="range" id="weightSlider" min="0" max="1" step="0.1" value="0.5" />
+            <label for="amountSlider">Anzahl Linien: <span id="amountSliderValue">30</span></label>
+            <input type="range" id="amountSlider" min="10" max="150" step="10" value="30" />
+            <span style="margin-left: 50px">R = Neu Laden</span>
+        </div>
+        <div>
+            <canvas id="canvas" width="800" height="800"></canvas>
+        </div>
+        <script>
+            const weightSlider = document.getElementById('weightSlider');
+            const weightSliderDisplay = document.getElementById('weightSliderValue');
+            const amountSlider = document.getElementById('amountSlider');
+            const amountSliderDisplay = document.getElementById('amountSliderValue');
+
+            weightSlider.addEventListener('input', function() {
+                weightSliderDisplay.innerHTML = weightSlider.value;
+                render();
+            });
+
+            amountSlider.addEventListener('input', function() {
+                amountSliderDisplay.innerHTML = amountSlider.value;
+                render();
+            });
+            function render() {
+                var canvas = document.getElementById('canvas');
+                var gl = canvas.getContext('experimental-webgl');
+                gl.clearColor(0, 0, 0, 1);
+                var vsSource = 'attribute vec2 pos;'+
+                    'void main(){gl_Position = vec4(pos * 0.05, 0, 1); }';
+                var vs = gl.createShader(gl.VERTEX_SHADER);
+                gl.shaderSource(vs, vsSource);
+                gl.compileShader(vs);
+
+                fsSouce =  'void main() { gl_FragColor = vec4(1); }';
+                var fs = gl.createShader(gl.FRAGMENT_SHADER);
+                gl.shaderSource(fs, fsSouce);
+                gl.compileShader(fs);
+
+                var prog = gl.createProgram();
+                gl.attachShader(prog, vs);
+                gl.attachShader(prog, fs);
+                gl.linkProgram(prog);
+                gl.useProgram(prog);
+
+                let myVertices = [];
+                let direction = 0; // 0 = rechts, 1 = runter, 2 = links, 3 = hoch
+                let rightVal = (Math.random() * 10) - 5
+                let downVal = (Math.random() * 10) - 5
+                let repeater = 0;
+                let weight = weightSlider.value;
+                let amountLines = amountSlider.value
+                for (let i = 0; i < amountLines; i++) {
+                    if (direction === 0) {
+                        if (Math.random() * 1 < weight) downVal = -downVal
+                        rightVal = -rightVal + 2;
+                    }
+                    if (direction === 1) {
+                        if (Math.random() * 1 < weight) rightVal = -rightVal
+                        downVal = -downVal + 2;
+                    }
+                    if (direction === 2) {
+                        if (Math.random() * 1 < weight) downVal = -downVal
+                        rightVal = -rightVal - 2;
+                    }
+                    if (direction === 3) {
+                        if (Math.random() * 1 < weight) rightVal = -rightVal
+                        downVal = -downVal - 2;
+                    }
+                    direction++
+                    if (direction === 4) {
+                        direction = 0;
+                        repeater++
+                        if (repeater === 1) {
+                            if (Math.random() * 1 > 0.5) downVal = (Math.random() * 10) - 5
+                            else rightVal = (Math.random() * 10) - 5
+                            repeater = 0;
+                        }
+                    }
+                    myVertices.push(rightVal, downVal)
+                }
+                console.log(myVertices)
+                var vertices = new Float32Array(myVertices);
+                var vbo = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+                var posAttrib = gl.getAttribLocation(prog, 'pos');
+                gl.vertexAttribPointer(posAttrib, 2, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(posAttrib);
+
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                gl.drawArrays(gl.LINE_STRIP, 0, amountLines);
+            }
+            
+            render();
+            window.addEventListener('keydown', function(event) {
+                if (event.key === 'r' || event.key === 'R') {
+                    render();
+                }
+            });
+        </script>
+    </body>
+</html>
+
+<style>
+    body {
+        background-color: darkkhaki;
+    }
+</style>
